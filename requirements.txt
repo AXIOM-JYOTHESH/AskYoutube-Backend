@@ -1,0 +1,17 @@
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+
+langchain-mistralai
+mistralai
+
+langchain-pinecone
+pinecone
+
+youtube-transcript-api
+
+python-dotenv
+fastapi 
+uvicorn
+pymongo
