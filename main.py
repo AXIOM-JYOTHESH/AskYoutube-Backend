@@ -1,11 +1,18 @@
-from dotenv import load_dotenv
-load_dotenv()
+import logging
 import os
-while(os.environ.get("PINECONE_API_KEY") == ''):
-    continue
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.api import router
+
+logger = logging.getLogger(__name__)
+
+if not os.environ.get("PINECONE_API_KEY"):
+    logger.warning("PINECONE_API_KEY is not set or empty. Please set it in your .env file.")
+
 
 app = FastAPI()
 app.add_middleware(
