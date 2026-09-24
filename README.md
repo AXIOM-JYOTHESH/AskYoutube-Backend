@@ -2,11 +2,10 @@
 
 [![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.135.2+-green.svg)](https://fastapi.tiangolo.com/)
-[![LangChain](https://img.shields.io/badge/LangChain-1.2.13+-orange.svg)](https://www.langchain.com/)
 [![Pinecone](https://img.shields.io/badge/Pinecone-VectorDB-red.svg)](https://www.pinecone.io/)
 [![Mistral AI](https://img.shields.io/badge/MistralAI-LLM-purple.svg)](https://mistral.ai/)
 
-A robust, scalable Retrieval-Augmented Generation (RAG) backend service that enables AI-powered question answering on YouTube video transcripts. Built with FastAPI, LangChain, Pinecone vector database, and Mistral AI, this system provides accurate, context-aware responses to questions about YouTube video content.
+A lightweight, robust Retrieval-Augmented Generation (RAG) backend service that enables AI-powered question answering on YouTube video transcripts. Built with FastAPI, Pinecone vector database, and Mistral AI, this system provides accurate, context-aware responses to questions about YouTube video content with zero bloat.
 
 ---
 
@@ -50,7 +49,6 @@ A robust, scalable Retrieval-Augmented Generation (RAG) backend service that ena
 - **Language:** Python 3.13+
 - **Framework:** FastAPI (async web framework)
 - **AI/ML:**
-  - LangChain (RAG pipeline orchestration)
   - Mistral AI (LLM and embeddings)
   - Pinecone (Vector database)
 - **Database:** MongoDB (metadata storage)

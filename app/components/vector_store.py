@@ -1,18 +1,47 @@
-from langchain_pinecone import PineconeVectorStore
 from app.components.pinecone import get_pinecone_index
-from app.components.models import embedding_model
+from app.components.models import get_embeddings
 
-_vector_store = None
+def add_documents_to_pinecone(texts: list[str], video_id: str, batch_size: int = 100):
+    if not texts:
+        return
+    embeddings = get_embeddings(texts)
+    index = get_pinecone_index()
+    vectors = [
+        {
+            "id": f"{video_id}_{i}",
+            "values": emb,
+            "metadata": {
+                "video_id": video_id,
+                "text": text,
+            },
+        }
+        for i, (text, emb) in enumerate(zip(texts, embeddings))
+    ]
+    for i in range(0, len(vectors), batch_size):
+        index.upsert(vectors=vectors[i:i + batch_size])
 
-def get_vector_store() -> PineconeVectorStore:
-    global _vector_store
-    if _vector_store is None:
-        index = get_pinecone_index()
-        _vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
-    return _vector_store
+def query_pinecone(queries: list[str], video_ids: list[str], top_k: int = 10) -> list[str]:
+    if not queries or not video_ids:
+        return []
+    embeddings = get_embeddings(queries)
+    index = get_pinecone_index()
+    retrieved_texts: list[str] = []
+    seen = set()
 
-class _LazyVectorStoreProxy:
-    def __getattr__(self, name):
-        return getattr(get_vector_store(), name)
-
-vector_store = _LazyVectorStoreProxy()
+    for emb in embeddings:
+        res = index.query(
+            vector=emb,
+            filter={"video_id": {"$in": video_ids}},
+            top_k=top_k,
+            include_metadata=True,
+        )
+        matches = getattr(res, "matches", []) or (res.get("matches", []) if isinstance(res, dict) else [])
+        for m in matches:
+            metadata = getattr(m, "metadata", None) or (m.get("metadata") if isinstance(m, dict) else None)
+            if metadata and "text" in metadata:
+                text = metadata["text"]
+                if text not in seen:
+                    seen.add(text)
+                    retrieved_texts.append(text)
+    return retrieved_texts
+

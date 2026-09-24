@@ -1,59 +1,77 @@
+import logging
 from youtube_transcript_api import YouTubeTranscriptApiException
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough, RunnableParallel
-from langchain_core.documents import Document
-from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 from app.db.config import collection
-from app.components.prompt import template
+from app.components.prompt import format_prompt
 from app.components.youtube_transcripts_loader import loader
-from app.components.models import llm
-from app.components.vector_store import vector_store
+from app.components.models import generate_chat_completion
+from app.components.vector_store import add_documents_to_pinecone, query_pinecone
 from app.components.textsplitter import text_splitter
-from app.components.output_parser import parser
-from app.components.utils import get_video_id, format_docs
+from app.components.utils import get_video_id
 
-sequence = template | llm | parser
+logger = logging.getLogger(__name__)
 
-def process_query(url: list[str], question: str):
-    video_ids = list()
+def generate_multi_queries(question: str) -> list[str]:
+    """Generate multiple query variations using Mistral to improve retrieval recall."""
+    try:
+        prompt = (
+            "You are an AI assistant helping with search. "
+            "Generate 3 different search queries to find relevant sections in a video transcript for the user question. "
+            "Provide each query on a new line. Do NOT include numbers or bullet points.\n\n"
+            f"User question: {question}"
+        )
+        content = generate_chat_completion([{"role": "user", "content": prompt}])
+        queries = [q.strip() for q in content.strip().split("\n") if q.strip()]
+        return [question] + queries[:3]
+    except Exception as e:
+        logger.warning(f"Multi-query generation failed: {e}. Falling back to original question.")
+        return [question]
+
+def process_query(url: list[str], question: str) -> str:
+    video_ids = []
     for l in url:
         v = get_video_id(l)
         if v:
             video_ids.append(v)
-    try:
-        r = vector_store.as_retriever(search_type = 'mmr', search_kwargs={"k": 10, "lambda_mult": 0.5, "filter": {"video_id": {"$in": video_ids}}})
-        retriever = MultiQueryRetriever.from_llm(retriever=r, llm=llm, include_original=True)
-        parallel = RunnableParallel({
-            "context": retriever | RunnableLambda(format_docs),
-            "query": RunnablePassthrough()
-        })
-        chain = parallel | sequence
-
-        response = chain.invoke(question)
-        return response
-    except Exception:
+    if not video_ids:
         return "NA"
 
-def loadURL(url: str):
+    try:
+        queries = generate_multi_queries(question)
+        retrieved_texts = query_pinecone(queries, video_ids, top_k=5)
+        context = "\n\n".join(retrieved_texts)
+
+        prompt = format_prompt(context=context, query=question)
+        response = generate_chat_completion([{"role": "user", "content": prompt}])
+        return response
+    except Exception as e:
+        logger.error(f"Error processing query: {e}")
+        return "NA"
+
+def loadURL(url: str) -> str:
     video_id = get_video_id(url)
+    if not video_id:
+        return "Invalid YouTube URL"
+
     vid = collection.find_one({"video_id": video_id})
     if vid:
-        return "Transcripts Available" if vid['processable'] else "No Captions Available for this video"
-    try: 
-        transcripts = loader.fetch(video_id=video_id, languages=['en', 'hi', 'gu'])
+        return "Transcripts Available" if vid.get("processable") else "No Captions Available for this video"
+
+    try:
+        transcripts = loader.fetch(video_id=video_id, languages=["en", "hi", "gu"])
         transcript = " ".join([x.text for x in transcripts])
         texts = text_splitter.split_text(transcript)
-        docs = [Document(page_content=t, metadata={"video_id": video_id}) for t in texts]
-        # ids = [f"{video_id}_{i}" for i in range(len(docs))]
-        id=vector_store.add_documents(documents=docs)
+
+        add_documents_to_pinecone(texts=texts, video_id=video_id)
         print("Inserted into Pinecone")
+
         collection.insert_one({
             "video_id": video_id,
-            "processable": True
+            "processable": True,
         })
         return "Transcripts Available"
     except YouTubeTranscriptApiException:
         collection.insert_one({
             "video_id": video_id,
-            "processable": False
+            "processable": False,
         })
-        return "No Captions Available for this video"
+        return "No Captions Available for this video"

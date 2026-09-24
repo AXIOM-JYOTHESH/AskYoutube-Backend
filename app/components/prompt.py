@@ -1,7 +1,4 @@
-from langchain_core.prompts import PromptTemplate
-
-template = PromptTemplate(
-    template="""
+PROMPT_TEMPLATE = """
 You are a helpful and accurate AI assistant.
 
 Your task is to answer the user's question strictly using ONLY the provided transcript context.
@@ -24,6 +21,7 @@ User Question:
 {query}
 
 Answer:
-""",
-    input_variables=["context", "query"]
-)
+"""
+
+def format_prompt(context: str, query: str) -> str:
+    return PROMPT_TEMPLATE.format(context=context, query=query)

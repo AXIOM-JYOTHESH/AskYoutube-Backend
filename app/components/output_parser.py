@@ -1,2 +1,5 @@
-from langchain_core.output_parsers import StrOutputParser
-parser = StrOutputParser()
+class StrOutputParser:
+    def parse(self, text: str) -> str:
+        return str(text)
+
+parser = StrOutputParser()
