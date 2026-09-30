@@ -22,6 +22,7 @@ def get_pinecone_index(index_name: str = "youtube-rag"):
         pc = get_pinecone_client()
         existing_indexes = pc.list_indexes().names()
         if index_name not in existing_indexes:
+            import time
             pc.create_index(
                 name=index_name,
                 dimension=1024,
@@ -31,6 +32,8 @@ def get_pinecone_index(index_name: str = "youtube-rag"):
                     region="us-east-1"
                 )
             )
+            while not pc.describe_index(index_name).status.ready:
+                time.sleep(1)
         _index = pc.Index(index_name)
     return _index
 

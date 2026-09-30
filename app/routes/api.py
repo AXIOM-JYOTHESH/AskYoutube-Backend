@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from app.models.schemas import QueryRequest, URLInclude
 from app.services.youtube import process_query, loadURL
 
@@ -13,10 +13,22 @@ def load_video(data: URLInclude):
     }
 
 
-@router.get("/ask")
+@router.post("/ask")
 def ask_question(data: QueryRequest):
     response = process_query(data.url, data.question)
     return {
         "success": response != "NA",
         "message": response,
     }
+
+
+@router.get("/ask")
+def ask_question_query(
+    question: str = Query(..., description="The question to ask about the video"),
+    url: list[str] = Query(..., description="YouTube video URL(s)"),
+):
+    response = process_query(url, question)
+    return {
+        "success": response != "NA",
+        "message": response,
+    }

@@ -26,7 +26,9 @@ def generate_multi_queries(question: str) -> list[str]:
         logger.warning(f"Multi-query generation failed: {e}. Falling back to original question.")
         return [question]
 
-def process_query(url: list[str], question: str) -> str:
+def process_query(url: list[str] | str, question: str) -> str:
+    if isinstance(url, str):
+        url = [url]
     video_ids = []
     for l in url:
         v = get_video_id(l)
@@ -36,8 +38,7 @@ def process_query(url: list[str], question: str) -> str:
         return "NA"
 
     try:
-        queries = generate_multi_queries(question)
-        retrieved_texts = query_pinecone(queries, video_ids, top_k=5)
+        retrieved_texts = query_pinecone([question], video_ids, top_k=5)
         context = "\n\n".join(retrieved_texts)
 
         prompt = format_prompt(context=context, query=question)
