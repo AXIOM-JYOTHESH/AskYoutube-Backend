@@ -196,8 +196,8 @@ All errors follow a consistent structure:
 
 ### Data Flow
 
-1. **Video Loading**: User provides YouTube URL â†’ Transcript fetched â†’ Text chunked â†’ Embeddings created â†’ Stored in Pinecone
-2. **Question Answering**: User asks question â†’ Multiple queries generated â†’ Relevant chunks retrieved â†’ Context passed to LLM â†’ Answer generated
+1. **Video Loading**: User provides YouTube URL -> Transcript fetched -> Text chunked -> Embeddings created -> Stored in Pinecone
+2. **Question Answering**: User asks question -> Semantic search in Pinecone -> Relevant chunks retrieved -> Context passed to Mistral LLM -> Answer generated
 
 ### Supported Languages
 
@@ -209,44 +209,46 @@ All errors follow a consistent structure:
 
 ## Performance & Optimization
 
-- **Async Processing**: FastAPI's async capabilities for high concurrency
-- **Vector Search**: Efficient similarity search with Pinecone
-- **Text Chunking**: Optimized chunk sizes for better retrieval
-- **Multi-Query Retrieval**: Improved accuracy through query expansion
-- **Caching**: Built-in LangChain caching for repeated queries
-- **Database Indexing**: MongoDB indexing for fast metadata lookups
+- **FastAPI Async Core**: Async architecture for high concurrency and low latency
+- **Direct Native SDKs**: Zero LangChain bloat for maximum performance and reliability
+- **Pinecone Serverless Index**: Fast cosine similarity search across 1024-dimension vectors
+- **Batch Embeddings & Retry**: Automatic chunk batching and backoff against rate limits
+- **MongoDB Atlas Storage**: Lightweight metadata persistence and duplicate index avoidance
+- **Interactive Web UI**: Standalone dashboard with live video player and chat interface
 
 ---
 
 ## Folder Structure
 
-```
+```text
 AskYoutube-Backend/
-â”œâ”€â”€ main.py                          # FastAPI application entry point
-â”œâ”€â”€ pyproject.toml                   # Project configuration and dependencies
-â”œâ”€â”€ requirements.txt                 # Python dependencies
-â”œâ”€â”€ README.md                        # Project documentation
-â”œâ”€â”€ .env                             # Environment variables (create this)
-â”œâ”€â”€ app/
-â”‚   â”œâ”€â”€ components/                  # Core RAG components
-â”‚   â”‚   â”œâ”€â”€ models.py                # LLM and embedding model configuration
-â”‚   â”‚   â”œâ”€â”€ pinecone.py              # Vector database setup
-â”‚   â”‚   â”œâ”€â”€ prompt.py                # Question-answering prompt templates
-â”‚   â”‚   â”œâ”€â”€ textsplitter.py          # Text chunking configuration
-â”‚   â”‚   â”œâ”€â”€ utils.py                 # Utility functions
-â”‚   â”‚   â”œâ”€â”€ vector_store.py          # Vector store wrapper
-â”‚   â”‚   â”œâ”€â”€ youtube_transcripts_loader.py  # YouTube transcript fetching
-â”‚   â”‚   â””â”€â”€ output_parser.py         # Response parsing
-â”‚   â”œâ”€â”€ db/
-â”‚   â”‚   â””â”€â”€ config.py                # MongoDB configuration
-â”‚   â”œâ”€â”€ models/
-â”‚   â”‚   â””â”€â”€ schemas.py               # Pydantic data models
-â”‚   â”œâ”€â”€ routes/
-â”‚   â”‚   â””â”€â”€ api.py                   # API route definitions
-â”‚   â””â”€â”€ services/
-â”‚       â””â”€â”€ youtube.py               # Business logic for YouTube operations
-â”œâ”€â”€ __pycache__/                     # Python bytecode cache
-â””â”€â”€ .venv/                           # Virtual environment (create this)
+|-- main.py                          # FastAPI application entry point & UI host
+|-- pyproject.toml                   # Project configuration and dependencies
+|-- requirements.txt                 # Python dependencies
+|-- README.md                        # Project documentation
+|-- .env.example                     # Example environment variables
+|-- static/
+|   `-- index.html                   # Interactive web dashboard UI
+|-- app/
+|   |-- components/                  # Core RAG components
+|   |   |-- models.py                # Mistral AI LLM and embedding integration
+|   |   |-- pinecone.py              # Pinecone vector index management
+|   |   |-- prompt.py                # RAG prompt templates
+|   |   |-- textsplitter.py          # Intelligent text chunking
+|   |   |-- utils.py                 # URL parsing (youtu.be, watch, shorts)
+|   |   |-- vector_store.py          # Pinecone upsert & similarity search
+|   |   |-- youtube_transcripts_loader.py  # YouTube transcript extractor
+|   |   `-- output_parser.py         # Response parsing
+|   |-- db/
+|   |   `-- config.py                # MongoDB Atlas configuration
+|   |-- models/
+|   |   `-- schemas.py               # Pydantic request/response models
+|   |-- routes/
+|   |   `-- api.py                   # API routes (/api/load, /api/ask)
+|   `-- services/
+|       `-- youtube.py               # Business logic for YouTube operations
+|-- __pycache__/                     # Python bytecode cache
+`-- .venv/                           # Virtual environment
 ```
 
 ---
